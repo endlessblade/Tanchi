@@ -1,0 +1,78 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CharacterControl : MonoBehaviour {
+    public Animator m_Motion;
+    public Rigidbody m_Rbody;
+    public Transform m_Cam;
+
+    private float m_inputH;
+    private float m_inputV;
+    private Vector3 m_forwardInWorld;
+    private Vector3 m_plane;
+    private bool m_walk;
+    [SerializeField] private float m_moveSpeed = 150f;
+    [SerializeField] private float m_turnSpeed = 5f;
+
+    private void Awake()
+    {
+        if (m_Motion == null)
+            m_Motion = GetComponent<Animator>();
+        if (m_Rbody == null)
+            m_Rbody = GetComponent<Rigidbody>();
+        if (m_Cam == null)
+            m_Cam = GameObject.FindGameObjectWithTag("MainCamera").transform;
+        m_walk = false;
+        m_Motion.SetInteger("Motion", 0);
+        m_plane = new Vector3(1, 0, 1);
+    }
+
+    private void FixedUpdate()
+    {
+        PlayerControl();
+        MotionControl();
+    }
+
+    private void PlayerControl()
+    {
+        m_inputH = Input.GetAxis("Horizontal");
+        m_inputV = Input.GetAxis("Vertical");
+
+        if (m_Cam != null)
+            m_forwardInWorld = Vector3.Scale(m_Cam.TransformVector(new Vector3(m_inputH, 0, m_inputV)), m_plane).normalized;
+        else
+            m_forwardInWorld = Vector3.forward;
+
+        if (m_inputH != 0 || m_inputV != 0)
+            LookToForward(m_forwardInWorld);
+        else
+            LookToForward(Vector3.Scale(m_Cam.forward, m_plane).normalized);
+
+        float m_Move = m_moveSpeed * Time.deltaTime;
+        m_walk = Input.GetKey(KeyCode.LeftShift);
+        if (m_walk)
+            m_Move /= 3f;
+
+        m_Rbody.velocity = m_forwardInWorld * m_Move;
+    }
+
+    private void LookToForward(Vector3 m_forward)
+    {
+        if(m_forward != Vector3.zero)
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(m_forward), m_turnSpeed * Time.deltaTime);
+    }
+
+    private void MotionControl()
+    {
+        if (m_inputH != 0 || m_inputV != 0)
+        {
+            if(m_walk)
+                m_Motion.SetInteger("Motion", 2);
+            else
+                m_Motion.SetInteger("Motion", 1);
+        }
+        else
+            m_Motion.SetInteger("Motion", 0);
+    }
+}
